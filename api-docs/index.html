@@ -8,19 +8,28 @@
         />
         <title>IncidentTracking Service - Overview</title>
 
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/@stoplight/elements/styles.min.css"
+        />
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
         <style>
             @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap");
 
             * {
-                font-family: "Google Sans", sans-serif;
-                box-sizing: border-box;
+                --font-prose: "Google Sans", sans-serif !important;
+                --fs-paragraph: "Google Sans", sans-serif !important;
             }
+
             body {
+                font-family: "Google Sans", sans-serif;
                 height: 100vh;
                 margin: 0;
-                background-color: #f4f7f9;
+                overflow: hidden;
+            }
+            .docs-container {
+                height: calc(100vh - 55px);
             }
             .top-nav {
                 background-color: #212a3b;
@@ -54,42 +63,17 @@
             .link-item.active {
                 background: #19212e;
             }
-            .docs-container {
-                height: calc(100vh - 55px);
-                overflow-y: auto;
-                padding: 40px 20px;
+
+            .sl-prose h1,
+            .sl-prose h2,
+            .sl-prose h3,
+            .sl-prose p,
+            .sl-prose li,
+            .sl-prose table {
+                font-family: var(--font-prose) !important;
             }
-            .markdown-content {
-                max-width: 900px;
-                margin: 0 auto;
-                background: white;
-                padding: 40px 50px;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-                line-height: 1.6;
-                color: #333;
-            }
-            /* จัดรูปแบบ Markdown พื้นฐาน */
-            .markdown-content h1,
-            .markdown-content h2,
-            .markdown-content h3 {
-                color: #212a3b;
-                border-bottom: 1px solid #eee;
-                padding-bottom: 8px;
-                margin-top: 24px;
-            }
-            .markdown-content p {
-                margin-bottom: 16px;
-            }
-            .markdown-content ul {
-                margin-bottom: 16px;
-                padding-left: 24px;
-            }
-            .markdown-content li {
-                margin-bottom: 8px;
-            }
-            .markdown-content strong {
-                color: #000;
+            .sl-prose h1 {
+                margin-bottom: 30px !important;
             }
         </style>
     </head>
@@ -109,18 +93,93 @@
             </ul>
         </div>
 
-        <div class="docs-container">
-            <div id="content" class="markdown-content">กำลังโหลดเนื้อหา...</div>
+        <div id="docs-container" class="docs-container">
+            <div style="height: 100%">
+                <div
+                    class="sl-elements sl-antialiased sl-h-full sl-text-base sl-font-ui sl-text-body"
+                >
+                    <div class="sl-elements-api sl-flex sl-inset-0 sl-h-full">
+                        <div class="sl-flex" style="max-width: 450px">
+                            <div
+                                class="sl-flex sl-overflow-y-auto sl-flex-col sl-sticky sl-inset-y-0 sl-pt-8 sl-bg-canvas-100 sl-border-r"
+                                style="
+                                    padding-left: calc(50% - 900px);
+                                    width: 300px;
+                                    min-width: 300px;
+                                "
+                            >
+                                <div
+                                    class="sl-flex sl-items-center sl-mb-5 sl-ml-4"
+                                >
+                                    <h4
+                                        class="sl-text-paragraph sl-leading-snug sl-font-prose sl-font-semibold sl-text-heading"
+                                    >
+                                        Service Overview
+                                    </h4>
+                                </div>
+                                <div
+                                    class="sl-flex sl-overflow-y-auto sl-flex-col sl-flex-grow sl-flex-shrink"
+                                >
+                                    <div
+                                        class="sl-overflow-y-auto sl-w-full sl-bg-canvas-100"
+                                    >
+                                        <div class="sl-my-3">
+                                            <div
+                                                class="sl-text-sm sl-leading-relaxed sl-tracking-wide sl-font-bold sl-uppercase sl-mt-6 sl-mb-2 sl-pl-4"
+                                            >
+                                                Contents
+                                            </div>
+                                            <div id="sidebar-nav"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="sl-flex sl-flex-grow-0 sl-flex-shrink-0 sl-justify-self-end sl-resize-x"
+                                style="width: 1em; flex-basis: 6px"
+                            ></div>
+                        </div>
+
+                        <div
+                            class="sl-overflow-y-auto sl-flex-1 sl-w-full sl-px-24 sl-bg-canvas"
+                            id="scroll-container"
+                        >
+                            <div class="sl-py-16" style="max-width: 1100px">
+                                <div class="sl-relative">
+                                    <div
+                                        id="content"
+                                        class="sl-prose sl-markdown-viewer sl-my-5"
+                                    >
+                                        กำลังโหลดข้อมูล...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <script>
-            // กำหนดค่าให้ Marked.js
-            marked.setOptions({
-                breaks: true,
-                gfm: true,
-            });
+            const renderer = new marked.Renderer();
+            renderer.heading = function (tokenOrText, levelOrUndefined) {
+                const isNewVersion = typeof tokenOrText === "object";
+                const text = isNewVersion ? tokenOrText.text : tokenOrText;
+                const level = isNewVersion
+                    ? tokenOrText.depth
+                    : levelOrUndefined;
+                const escapedText = text
+                    .toLowerCase()
+                    .replace(/[^\wก-๙]+/g, "-");
 
-            // ดึงไฟล์ overview.md มาแปลงและแสดงผล
+                if (level === 2) {
+                    return `<h2 id="${escapedText}" style="scroll-margin-top: 40px;">${text}</h2>`;
+                }
+                return `<h${level} id="${escapedText}" style="scroll-margin-top: 40px;">${text}</h${level}>`;
+            };
+
+            marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
+
             fetch("overview.md")
                 .then((response) => {
                     if (!response.ok)
@@ -130,17 +189,60 @@
                 .then((text) => {
                     document.getElementById("content").innerHTML =
                         marked.parse(text);
+
+                    const sidebarNav = document.getElementById("sidebar-nav");
+                    const headers = document.querySelectorAll("#content h2");
+
+                    headers.forEach((header, index) => {
+                        const link = document.createElement("a");
+                        link.className =
+                            "ElementsTableOfContentsItem sl-block sl-no-underline";
+                        link.href = `#${header.id}`;
+
+                        const activeClasses = "sl-bg-primary-tint";
+                        const inactiveClasses =
+                            "sl-bg-canvas-100 hover:sl-bg-canvas-200";
+
+                        const isFirst = index === 0;
+                        const bgClasses = isFirst
+                            ? activeClasses
+                            : inactiveClasses;
+
+                        link.innerHTML = `
+                            <div class="toc-item-wrapper sl-flex sl-items-center sl-h-md sl-pr-4 sl-pl-4 ${bgClasses} sl-cursor-pointer sl-select-none" title="${header.textContent}">
+                                <div class="sl-flex-1 sl-items-center sl-text-base sl-truncate sl-mr-1.5 sl-ml-1.5">
+                                    ${header.textContent}
+                                </div>
+                            </div>
+                        `;
+
+                        link.addEventListener("click", (e) => {
+                            e.preventDefault();
+
+                            document
+                                .getElementById("scroll-container")
+                                .scrollTo({
+                                    top: header.offsetTop - 60,
+                                    behavior: "smooth",
+                                });
+
+                            document
+                                .querySelectorAll(".toc-item-wrapper")
+                                .forEach((el) => {
+                                    el.className = `toc-item-wrapper sl-flex sl-items-center sl-h-md sl-pr-4 sl-pl-4 ${inactiveClasses} sl-cursor-pointer sl-select-none`;
+                                });
+
+                            link.querySelector(".toc-item-wrapper").className =
+                                `toc-item-wrapper sl-flex sl-items-center sl-h-md sl-pr-4 sl-pl-4 ${activeClasses} sl-cursor-pointer sl-select-none`;
+                        });
+
+                        sidebarNav.appendChild(link);
+                    });
                 })
                 .catch((error) => {
-                    document.getElementById("content").innerHTML = `
-                        <h3 style="color: #d32f2f;">ไม่สามารถโหลดไฟล์ข้อมูลได้</h3>
-                        <p>กรุณาตรวจสอบให้แน่ใจว่า:</p>
-                        <ul>
-                            <li>มีไฟล์ <code>overview.md</code> อยู่ในโฟลเดอร์เดียวกันกับไฟล์ HTML</li>
-                            <li>คุณเปิดไฟล์นี้ผ่าน Web Server (เช่น Live Server) ไม่ใช่การดับเบิลคลิกเปิดไฟล์โดยตรง</li>
-                        </ul>
-                    `;
-                    console.error("Error fetching markdown:", error);
+                    document.getElementById("content").innerHTML =
+                        "เกิดข้อผิดพลาดในการโหลดไฟล์ overview.md (โปรดแน่ใจว่ารันผ่าน Live Server)";
+                    console.error(error);
                 });
         </script>
     </body>
