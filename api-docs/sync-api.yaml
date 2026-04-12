@@ -1,0 +1,383 @@
+openapi: 3.0.0
+info:
+  title: IncidentTracking Service API
+  description: >-
+    API สำหรับการสร้างเหตุการณ์ฉุกเฉิน การจัดการสถานะวงจรชีวิตของเหตุการณ์
+    และการบันทึกลำดับเหตุการณ์ตามลำดับเวลา
+  version: 1.0.0
+  contact:
+    name: Krittamet (Mark)
+    email: krittamet.dam@dome.tu.ac.th
+    url: "https://teams.microsoft.com/l/chat/0/0?users=krittamet.dam@dome.tu.ac.th"
+servers:
+  - url: "https://incident-service.krittamark.com/api/v1"
+    description: Production Server
+  - url: "https://dev.incident-service.krittamark.com/api/v1"
+    description: Development Server
+license:
+  name: Apache 2.0
+  identifier: Apache-2.0
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      description: API Key Authentication
+      name: api-key
+      in: header
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: รหัสข้อผิดพลาด
+              enum:
+                - NOT_FOUND
+                - INTERNAL_SERVER_ERROR
+                - SERVICE_UNAVAILABLE
+                - BAD_REQUEST
+                - ENTITY_ALREADY_EXISTS
+            message:
+              type: string
+              description: ข้อความแสดงข้อผิดพลาดเพิ่มเติม
+              example: Human-readable error description
+            details:
+              type: array
+              description: รายละเอียดเพิ่มเติมเกี่ยวกับข้อผิดพลาด
+              items:
+                type: string
+              example:
+                - Additional details (if any)
+            trace_id:
+              type: string
+              description: รหัสการติดตาม (trace ID) เพื่อใช้ในการตรวจสอบใน log
+              example: req-uuid-for-log-tracing
+    TimelineEvent:
+      type: object
+      properties:
+        time:
+          type: string
+          description: เวลาที่เกิดเหตุ
+          format: date-time
+          example: "2026-02-22T00:00:00Z"
+        event:
+          type: string
+          description: ประเภทของเหตุการณ์
+          example: Created
+        detail:
+          type: string
+          description: รายละเอียดเพิ่มเติมเกี่ยวกับเหตุการณ์
+          example: Incident verified
+    IncidentID:
+      type: string
+      description: รหัสเฉพาะสำหรับเหตุการณ์นี้ (UUIDv7)
+      format: uuid
+      example: 019C774D-1AC5-758B-AE95-5CD4AEB89258
+    IncidentObject:
+      type: object
+      properties:
+        incident_id:
+          $ref: "#/components/schemas/IncidentID"
+        incident_type:
+          $ref: "#/components/schemas/IncidentType"
+        incident_description:
+          $ref: "#/components/schemas/IncidentDescription"
+        exact_location:
+          $ref: "#/components/schemas/IncidentLocation"
+        exact_location_description:
+          $ref: "#/components/schemas/IncidentLocationDescription"
+        impact_level:
+          $ref: "#/components/schemas/IncidentImpactLevel"
+        priority:
+          $ref: "#/components/schemas/IncidentPriority"
+        status:
+          $ref: "#/components/schemas/IncidentStatus"
+        reported_by:
+          $ref: "#/components/schemas/Service"
+          description: ผู้รายงานเหตุการณ์
+        created_at:
+          type: string
+          description: วันที่สร้างเหตุการณ์
+          format: date-time
+          example: "2026-02-22T00:00:00Z"
+        updated_at:
+          type: string
+          description: วันที่อัปเดตเหตุการณ์
+          format: date-time
+          example: "2026-02-22T00:01:04Z"
+        timeline:
+          type: array
+          description: แผนภาพเวลาของสิ่งที่เกิดขึ้นเกี่ยวกับเหตุการณ์นี้
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+    IncidentStatus:
+      type: string
+      enum:
+        - REPORTED
+        - DISPATCHED
+        - ON-SITE
+        - RESOLVED
+        - CLOSED
+      description: สถานะของเหตุการณ์
+    IncidentType:
+      type: string
+      enum:
+        - fire
+        - flood
+        - storm
+        - earthquake
+        - explosion
+        - generic
+      description: ประเภทของเหตุการณ์
+    IncidentDescription:
+      type: string
+      description: คำอธิบายของเหตุการณ์
+      example: Fire reported near TU Dome (Verified)
+    IncidentLocation:
+      type: string
+      description: ตำแหน่งที่เกิดเหตุ (latitude,longitude)
+      example: "14.0649,100.6003"
+    IncidentLocationDescription:
+      type: string
+      description: รายละเอียดตำแหน่งที่เกิดเหตุ
+      example: TU Dome's outdoor parking lot
+    IncidentImpactLevel:
+      type: integer
+      description: ระดับความรุนแรงของเหตุการณ์
+      enum: [1, 2, 3]
+    IncidentPriority:
+      type: string
+      description: ระดับความสำคัญของเหตุการณ์
+      enum:
+        - Low
+        - Medium
+        - High
+    Service:
+      type: string
+      example: ReportVerify Service
+    IncidentTNXID:
+      type: string
+      format: uuid
+      description: UUID ของของคำร้องที่สร้างขึ้น
+      example: 123E4567-E89B-12D3-A456-426614174000
+  links: {}
+  callbacks: {}
+security:
+  - apiKeyAuth: []
+paths:
+  /incidents:
+    get:
+      summary: List All Incidents
+      description: >-
+        ดึงข้อมูลรายการเหตุการณ์ฉุกเฉินทั้งหมดในระบบ
+        (สามารถกรองข้อมูลตามสถานะหรือประเภทได้)
+      operationId: listIncidents
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: "#/components/schemas/IncidentStatus"
+          description: กรองตามสถานะเหตุการณ์
+        - in: query
+          name: incident_type
+          required: false
+          schema:
+            $ref: "#/components/schemas/IncidentType"
+          description: "กรองตามประเภทเหตุการณ์"
+        - in: header
+          name: X-IncidentTNX-Id
+          required: false
+          schema:
+            $ref: "#/components/schemas/IncidentTNXID"
+      responses:
+        "200":
+          description: ส่งคืนค่ารายการเหตุการณ์ทั้งหมดตามตัวกรองที่เลือกใช้
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IncidentObject"
+        "404":
+          description: ไม่พบรายการเหตุการณ์ตามตัวกรองที่เลือกใช้
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  "/incidents/{incident_id}":
+    get:
+      summary: Get Incident Details
+      description: >-
+        ดึงข้อมูลรายละเอียดของเหตุการณ์ รวมถึง Timeline ทั้งหมด ให้ Service อื่น
+        ตรวจสอบสถานะว่าเหตุการณ์จบลงหรือยัง
+      operationId: getIncident
+      parameters:
+        - in: path
+          name: incident_id
+          required: true
+          schema:
+            $ref: "#/components/schemas/IncidentID"
+          description: รหัส UUID สำหรับระบุภัยพิบัติ
+        - in: header
+          name: X-IncidentTNX-Id
+          required: false
+          schema:
+            $ref: "#/components/schemas/IncidentTNXID"
+      responses:
+        "200":
+          description: ส่งคืนค่ารายการเหตุการณ์ตาม UUID ที่ระบุ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentObject"
+        "404":
+          description: ไม่พบรายการเหตุการณ์ตาม UUID ที่ระบุ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create Incident
+      description: >-
+        รับข้อมูลที่ผ่านการตรวจสอบแล้ว
+        มาสร้างเป็นเหตุการณ์ฉุกเฉินอย่างเป็นทางการ ระบบจะสร้างประวัติแรกใน
+        Timeline ให้อัตโนมัติ
+      operationId: createIncident
+      parameters:
+        - in: header
+          name: X-IncidentTNX-Id
+          required: true
+          schema:
+            $ref: "#/components/schemas/IncidentTNXID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - incident_type
+                - incident_description
+                - exact_location
+                - impact_level
+                - priority
+                - reported_by
+              properties:
+                incident_type:
+                  $ref: "#/components/schemas/IncidentType"
+                incident_description:
+                  $ref: "#/components/schemas/IncidentDescription"
+                exact_location:
+                  $ref: "#/components/schemas/IncidentLocation"
+                exact_location_description:
+                  $ref: "#/components/schemas/IncidentLocationDescription"
+                impact_level:
+                  $ref: "#/components/schemas/IncidentImpactLevel"
+                priority:
+                  $ref: "#/components/schemas/IncidentPriority"
+                reported_by:
+                  $ref: "#/components/schemas/Service"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  incident_id:
+                    $ref: "#/components/schemas/IncidentID"
+                  status:
+                    $ref: "#/components/schemas/IncidentStatus"
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2026-02-22T00:00:00Z"
+                  message:
+                    type: string
+                    example: Incident created successfully
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update Status & Timeline
+      description: >-
+        ใช้เปลี่ยนสถานะเหตุการณ์ เมื่ออัปเดตสถานะสำเร็จ ระบบจะนำ detail
+        ไปต่อท้ายในอาร์เรย์ Timeline อัตโนมัติ
+      operationId: updateIncidentStatus
+      parameters:
+        - in: path
+          name: incident_id
+          required: true
+          schema:
+            $ref: "#/components/schemas/IncidentID"
+          description: รหัส UUID สำหรับระบุภัยพิบัติ
+        - in: header
+          name: X-IncidentTNX-Id
+          required: true
+          schema:
+            $ref: "#/components/schemas/IncidentTNXID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+                - updated_by
+              properties:
+                status:
+                  $ref: "#/components/schemas/IncidentStatus"
+                updated_by:
+                  $ref: "#/components/schemas/Service"
+                  description: ชื่อของบริการที่ทำการอัปเดตสถานะ
+                detail:
+                  type: string
+                  example: "Team arrived at location, setting up perimeter."
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentObject"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+externalDocs:
+  url: "https://drive.google.com/file/d/1RY26FQHDSq07ZYz8k_pdZxKjkqE5BVXV/view"

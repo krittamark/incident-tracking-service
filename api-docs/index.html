@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, shrink-to-fit=no"
+        />
+        <title>IncidentTracking Service - Contracts</title>
+
+        <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/@stoplight/elements/styles.min.css"
+        />
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700");
+
+            * {
+                --font-prose: "Google Sans", sans-serif !important;
+                --fs-paragraph: "Google Sans", sans-serif !important;
+            }
+
+            * {
+                font-family: var(--fs-paragraph);
+            }
+            body {
+                height: 100vh;
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <elements-api
+            apiDescriptionUrl="./sync-api.yaml"
+            router="hash"
+            layout="sidebar"
+        />
+    </body>
+</html>
