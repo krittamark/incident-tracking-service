@@ -4,7 +4,7 @@ info:
   description: >-
     API สำหรับการสร้างเหตุการณ์ฉุกเฉิน การจัดการสถานะวงจรชีวิตของเหตุการณ์
     และการบันทึกลำดับเหตุการณ์ตามลำดับเวลา
-  version: 1.0.0
+  version: 1.1.0
   contact:
     name: Krittamet (Mark)
     email: krittamet.dam@dome.tu.ac.th
