@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: IncidentTracking Service API
+  title: IncidentTracking Sync Contracts
   description: >-
     API สำหรับการสร้างเหตุการณ์ฉุกเฉิน การจัดการสถานะวงจรชีวิตของเหตุการณ์
     และการบันทึกลำดับเหตุการณ์ตามลำดับเวลา

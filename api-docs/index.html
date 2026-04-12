@@ -6,35 +6,142 @@
             name="viewport"
             content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <title>IncidentTracking Service - Sync Contracts</title>
+        <title>IncidentTracking Service - Overview</title>
 
-        <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
-        <link
-            rel="stylesheet"
-            href="https://unpkg.com/@stoplight/elements/styles.min.css"
-        />
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
         <style>
-            @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700");
+            @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap");
 
             * {
-                --font-prose: "Google Sans", sans-serif !important;
-                --fs-paragraph: "Google Sans", sans-serif !important;
-            }
-
-            * {
-                font-family: var(--fs-paragraph);
+                font-family: "Google Sans", sans-serif;
+                box-sizing: border-box;
             }
             body {
                 height: 100vh;
                 margin: 0;
+                background-color: #f4f7f9;
+            }
+            .top-nav {
+                background-color: #212a3b;
+                padding: 0 24px;
+                color: white;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                height: 55px;
+            }
+            .top-link {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                display: flex;
+                height: 100%;
+            }
+            .link-item {
+                height: 100%;
+                display: flex;
+                align-items: center;
+            }
+            .link {
+                color: white;
+                text-decoration: none;
+                display: block;
+                padding: 0 20px;
+                line-height: 55px;
+            }
+            .link-item:hover,
+            .link-item.active {
+                background: #19212e;
+            }
+            .docs-container {
+                height: calc(100vh - 55px);
+                overflow-y: auto;
+                padding: 40px 20px;
+            }
+            .markdown-content {
+                max-width: 900px;
+                margin: 0 auto;
+                background: white;
+                padding: 40px 50px;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+                line-height: 1.6;
+                color: #333;
+            }
+            /* จัดรูปแบบ Markdown พื้นฐาน */
+            .markdown-content h1,
+            .markdown-content h2,
+            .markdown-content h3 {
+                color: #212a3b;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 8px;
+                margin-top: 24px;
+            }
+            .markdown-content p {
+                margin-bottom: 16px;
+            }
+            .markdown-content ul {
+                margin-bottom: 16px;
+                padding-left: 24px;
+            }
+            .markdown-content li {
+                margin-bottom: 8px;
+            }
+            .markdown-content strong {
+                color: #000;
             }
         </style>
     </head>
     <body>
-        <elements-api
-            apiDescriptionUrl="./sync-api.yaml"
-            router="hash"
-            layout="sidebar"
-        />
+        <div class="top-nav">
+            <strong>IncidentTracking Service</strong>
+            <ul class="top-link">
+                <li class="link-item active">
+                    <a class="link" href="/">Overview</a>
+                </li>
+                <li class="link-item">
+                    <a class="link" href="/sync-contract/#">Sync API</a>
+                </li>
+                <li class="link-item">
+                    <a class="link" href="/async-contract/#">Async API</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="docs-container">
+            <div id="content" class="markdown-content">กำลังโหลดเนื้อหา...</div>
+        </div>
+
+        <script>
+            // กำหนดค่าให้ Marked.js
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+            });
+
+            // ดึงไฟล์ overview.md มาแปลงและแสดงผล
+            fetch("overview.md")
+                .then((response) => {
+                    if (!response.ok)
+                        throw new Error("Network response was not ok");
+                    return response.text();
+                })
+                .then((text) => {
+                    document.getElementById("content").innerHTML =
+                        marked.parse(text);
+                })
+                .catch((error) => {
+                    document.getElementById("content").innerHTML = `
+                        <h3 style="color: #d32f2f;">ไม่สามารถโหลดไฟล์ข้อมูลได้</h3>
+                        <p>กรุณาตรวจสอบให้แน่ใจว่า:</p>
+                        <ul>
+                            <li>มีไฟล์ <code>overview.md</code> อยู่ในโฟลเดอร์เดียวกันกับไฟล์ HTML</li>
+                            <li>คุณเปิดไฟล์นี้ผ่าน Web Server (เช่น Live Server) ไม่ใช่การดับเบิลคลิกเปิดไฟล์โดยตรง</li>
+                        </ul>
+                    `;
+                    console.error("Error fetching markdown:", error);
+                });
+        </script>
     </body>
 </html>

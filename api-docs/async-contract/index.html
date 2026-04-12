@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, shrink-to-fit=no"
+        />
+        <title>IncidentTracking Service - Sync Contracts</title>
+
+        <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/@stoplight/elements/styles.min.css"
+        />
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700");
+
+            * {
+                --font-prose: "Google Sans", sans-serif !important;
+                --fs-paragraph: "Google Sans", sans-serif !important;
+            }
+
+            * {
+                font-family: var(--fs-paragraph);
+            }
+            body {
+                font-family: "Google Sans", sans-serif;
+                height: 100vh;
+                margin: 0;
+            }
+            .docs-container {
+                height: calc(100vh - 55px);
+            }
+            .top-nav {
+                background-color: #212a3b;
+                padding: 0 24px;
+                color: white;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                height: 55px;
+            }
+            .top-link {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                display: flex;
+                height: 100%;
+            }
+            .link-item {
+                height: 100%;
+                display: flex;
+                align-items: center;
+            }
+            .link {
+                color: white;
+                text-decoration: none;
+                display: block;
+                padding: 0 20px;
+                line-height: 55px;
+            }
+            .link-item:hover,
+            .link-item.active {
+                background: #19212e;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="top-nav">
+            <strong>IncidentTracking Service</strong>
+            <ul class="top-link">
+                <li class="link-item">
+                    <a class="link" href="/">Overview</a>
+                </li>
+                <li class="link-item">
+                    <a class="link" href="/sync-contract/#">Sync API</a>
+                </li>
+                <li class="link-item active">
+                    <a class="link" href="/async-contract/#">Async API</a>
+                </li>
+            </ul>
+        </div>
+
+        <div id="docs-container" class="docs-container"></div>
+    </body>
+</html>
