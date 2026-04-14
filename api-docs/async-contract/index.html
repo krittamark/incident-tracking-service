@@ -6,13 +6,13 @@
             name="viewport"
             content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <title>IncidentTracking Service - Sync Contracts</title>
+        <title>IncidentTracking Service - Async Contracts</title>
 
-        <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
         <link
             rel="stylesheet"
-            href="https://unpkg.com/@stoplight/elements/styles.min.css"
+            href="https://unpkg.com/@asyncapi/react-component@1.0.0-next.47/styles/default.min.css"
         />
+        <script src="https://unpkg.com/@asyncapi/web-component@1.0.0-next.47/lib/asyncapi-web-component.js"></script>
         <style>
             @import url("https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700");
 
@@ -82,6 +82,12 @@
             </ul>
         </div>
 
-        <div id="docs-container" class="docs-container"></div>
+        <div id="docs-container" class="docs-container">
+            <asyncapi-component
+                schemaUrl="./async-api.yaml"
+                cssImportPath="https://unpkg.com/@asyncapi/react-component@1.0.0-next.47/styles/default.min.css"
+            >
+            </asyncapi-component>
+        </div>
     </body>
 </html>

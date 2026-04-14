@@ -1,0 +1,164 @@
+asyncapi: 2.6.0
+info:
+  title: Incident Tracking Service - Events API
+  version: 1.0.0
+  description: Asynchronous Event Contracts สำหรับส่งข้อมูลเหตุการณ์ภัยพิบัติและการเปลี่ยนแปลงสถานะ เพื่อให้ Service อื่นๆ (เช่น Manage Dispatch, Donation Tracking, Shelter Capacity) นำไปทำงานต่อแบบ Real-time
+
+channels:
+  incident.core.events.v1:
+    description: ช่องทางหลักสำหรับการกระจาย Event ที่เกี่ยวข้องกับ Incident (Publish-Subscribe)
+    subscribe:
+      summary: รอรับ Event เมื่อมีการสร้างเหตุการณ์ใหม่ หรืออัปเดตสถานะเหตุการณ์
+      operationId: receiveIncidentEvents
+      message:
+        oneOf:
+          - $ref: "#/components/messages/IncidentCreated"
+          - $ref: "#/components/messages/IncidentStatusChanged"
+
+components:
+  messages:
+    IncidentCreated:
+      name: IncidentCreated
+      title: Incident Created Event
+      summary: ส่งข้อมูลเหตุการณ์ภัยพิบัติที่ได้รับการยืนยัน และสร้างขึ้นใหม่ในระบบอย่างเป็นทางการ
+      payload:
+        $ref: "#/components/schemas/IncidentCreatedPayload"
+
+    IncidentStatusChanged:
+      name: IncidentStatusChanged
+      title: Incident Status Changed Event
+      summary: ส่งข้อมูลอัปเดตสถานะของเหตุการณ์ภัยพิบัติ เมื่อมีการเปลี่ยนแปลงเพื่อให้ Service ที่เกี่ยวข้องทราบความคืบหน้า
+      payload:
+        $ref: "#/components/schemas/IncidentStatusChangedPayload"
+
+  schemas:
+    IncidentCreatedPayload:
+      type: object
+      required:
+        - eventId
+        - eventType
+        - sentAt
+        - data
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: รหัสประจำตัวของ Event (ต้องไม่ซ้ำกับ Event ที่เคยประมวลผลไปแล้ว)
+          example: "8B9E4B0D-387E-4A0D-9D9F-3F5C6A2A3E10"
+        eventType:
+          type: string
+          enum: [INCIDENT_CREATED]
+          description: ระบุประเภท Event ค่าคงที่เป็น INCIDENT_CREATED
+        sentAt:
+          type: string
+          format: date-time
+          description: เวลาที่ระบบสร้างและ Publish Event นี้ (ISO-8601)
+          example: "2026-02-22T00:00:00Z"
+        data:
+          type: object
+          required:
+            - incident_id
+            - incident_type
+            - incident_description
+            - exact_location
+            - impact_level
+            - priority
+            - status
+            - reported_by
+            - created_at
+          properties:
+            incident_id:
+              type: string
+              format: uuid
+              description: รหัสอ้างอิงของเหตุการณ์ภัยพิบัติที่ถูกสร้างใหม่ (UUIDv7)
+              example: "019C774D-1AC5-758B-AE95-5CD4AEB89258"
+            incident_type:
+              type: string
+              description: ประเภทของภัยพิบัติ เช่น fire, flood, generic
+              example: "fire"
+            incident_description:
+              type: string
+              description: รายละเอียดของเหตุการณ์ที่เกิดขึ้น
+              example: "Fire reported near TU Dome (Verified)"
+            exact_location:
+              type: string
+              description: พิกัด Lat, Long (รูปแบบ "Lat,Lng" โดยที่ Lat -90 ถึง 90 และ Lng -180 ถึง 180)
+              example: "14.0649,100.6003"
+            exact_location_description:
+              type: string
+              description: จุดสังเกตเพิ่มเติม (Optional)
+              example: "TU Dome's outdoor parking lot"
+            impact_level:
+              type: integer
+              description: ระดับผลกระทบ (1-4)
+              example: 3
+            priority:
+              type: string
+              enum: [Low, Medium, High, Critical]
+              description: ความเร่งด่วน
+              example: "High"
+            status:
+              type: string
+              description: สถานะปัจจุบัน
+              example: "DISPATCHED"
+            reported_by:
+              type: string
+              description: ต้นทางที่แจ้งเหตุ
+              example: "ReportVerify Service"
+            created_at:
+              type: string
+              format: date-time
+              description: เวลาที่สร้างเหตุการณ์
+              example: "2026-02-22T00:00:00Z"
+
+    IncidentStatusChangedPayload:
+      type: object
+      required:
+        - eventId
+        - eventType
+        - sentAt
+        - data
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: รหัสประจำตัวของ Event (ต้องไม่ซ้ำกับ Event ที่เคยเกิดขึ้นไปแล้ว)
+          example: "9C8F5C1E-4C8F-5B1E-0E0G-4G6D7B3B4F21"
+        eventType:
+          type: string
+          enum: [STATUS_CHANGED]
+          description: ระบุประเภท Event ค่าคงที่เป็น STATUS_CHANGED
+        sentAt:
+          type: string
+          format: date-time
+          description: เวลาที่ระบบสร้างและ Publish Event นี้ (ISO-8601)
+          example: "2026-02-22T10:15:00Z"
+        data:
+          type: object
+          required:
+            - incident_id
+            - old_status
+            - new_status
+            - updated_by
+          properties:
+            incident_id:
+              type: string
+              format: uuid
+              description: รหัสอ้างอิงของเหตุการณ์ที่มีการเปลี่ยนสถานะ (UUIDv7)
+              example: "019C774D-1AC5-758B-AE95-5CD4AEB89258"
+            old_status:
+              type: string
+              description: สถานะเดิมก่อนการเปลี่ยนแปลง
+              example: "DISPATCHED"
+            new_status:
+              type: string
+              description: สถานะใหม่ที่ถูกอัปเดต (REPORTED, DISPATCHED, ON-SITE, RESOLVED, CLOSED)
+              example: "ON-SITE"
+            updated_by:
+              type: string
+              description: ผู้ที่ทำการอัปเดตสถานะ
+              example: "Rescue Team-A"
+            detail:
+              type: string
+              description: คำอธิบายรายละเอียดที่ถูกบันทึกลงใน Timeline เพิ่มเติม (Optional)
+              example: "Team arrived at location, setting up perimeter."
