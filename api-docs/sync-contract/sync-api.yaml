@@ -220,38 +220,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  "/incidents/{incident_id}":
-    get:
-      summary: Get Incident Details
-      description: >-
-        ดึงข้อมูลรายละเอียดของเหตุการณ์ รวมถึง Timeline ทั้งหมด ให้ Service อื่น
-        ตรวจสอบสถานะว่าเหตุการณ์จบลงหรือยัง
-      operationId: getIncident
-      parameters:
-        - in: path
-          name: incident_id
-          required: true
-          schema:
-            $ref: "#/components/schemas/IncidentID"
-          description: รหัส UUID สำหรับระบุภัยพิบัติ
-        - in: header
-          name: X-IncidentTNX-Id
-          required: false
-          schema:
-            $ref: "#/components/schemas/IncidentTNXID"
-      responses:
-        "200":
-          description: ส่งคืนค่ารายการเหตุการณ์ตาม UUID ที่ระบุ
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/IncidentObject"
-        "404":
-          description: ไม่พบรายการเหตุการณ์ตาม UUID ที่ระบุ
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
     post:
       summary: Create Incident
       description: >-
@@ -320,6 +288,38 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  "/incidents/{incident_id}":
+    get:
+      summary: Get Incident Details
+      description: >-
+        ดึงข้อมูลรายละเอียดของเหตุการณ์ รวมถึง Timeline ทั้งหมด ให้ Service อื่น
+        ตรวจสอบสถานะว่าเหตุการณ์จบลงหรือยัง
+      operationId: getIncident
+      parameters:
+        - in: path
+          name: incident_id
+          required: true
+          schema:
+            $ref: "#/components/schemas/IncidentID"
+          description: รหัส UUID สำหรับระบุภัยพิบัติ
+        - in: header
+          name: X-IncidentTNX-Id
+          required: false
+          schema:
+            $ref: "#/components/schemas/IncidentTNXID"
+      responses:
+        "200":
+          description: ส่งคืนค่ารายการเหตุการณ์ตาม UUID ที่ระบุ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncidentObject"
+        "404":
+          description: ไม่พบรายการเหตุการณ์ตาม UUID ที่ระบุ
           content:
             application/json:
               schema:
