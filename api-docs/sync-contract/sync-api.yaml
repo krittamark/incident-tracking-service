@@ -10,7 +10,7 @@ info:
     email: krittamet.dam@dome.tu.ac.th
     url: "https://teams.microsoft.com/l/chat/0/0?users=krittamet.dam@dome.tu.ac.th"
 servers:
-  - url: "https://incident-service.krittamark.com/api/v1"
+  - url: "https://incident-gateway-859kfcr6.uk.gateway.dev/api/v1"
     description: Production Server
   - url: "https://dev.incident-service.krittamark.com/api/v1"
     description: Development Server
