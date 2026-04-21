@@ -105,6 +105,10 @@ components:
               type: string
               description: ต้นทางที่แจ้งเหตุ
               example: "ReportVerify Service"
+            source_report_id:
+              type: string
+              description: รหัสอ้างอิงจากระบบรายงานต้นทาง
+              example: "r-12345"
             created_at:
               type: string
               format: date-time

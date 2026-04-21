@@ -98,6 +98,10 @@ components:
         reported_by:
           $ref: "#/components/schemas/Service"
           description: ผู้รายงานเหตุการณ์
+        source_report_id:
+          type: string
+          description: รหัสอ้างอิงจากระบบรายงานต้นทาง
+          example: "r-12345"
         created_at:
           type: string
           description: วันที่สร้างเหตุการณ์
@@ -261,6 +265,9 @@ paths:
                   $ref: "#/components/schemas/IncidentPriority"
                 reported_by:
                   $ref: "#/components/schemas/Service"
+                source_report_id:
+                  type: string
+                  description: รหัสอ้างอิงจากระบบรายงานต้นทาง
       responses:
         "201":
           description: Created
