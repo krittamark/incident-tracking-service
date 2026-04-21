@@ -1,0 +1,100 @@
+swagger: "2.0"
+info:
+  title: Incident Tracking API
+  version: 1.0.0
+schemes:
+  - https
+produces:
+  - application/json
+
+# 1. กำหนด Security Definition ตาม Sync Contract
+securityDefinitions:
+  apiKeyAuth:
+    type: "apiKey"
+    name: "api-key"
+    in: "header"
+
+# 2. บังคับใช้กับทุก Path (ยกเว้น OPTIONS สำหรับ CORS)
+security:
+  - apiKeyAuth: []
+
+paths:
+  /api/v1/incidents:
+    options:
+      summary: CORS support
+      operationId: corsIncidents
+      security: [] # ไม่ต้องใช้ API Key สำหรับ OPTIONS
+      x-google-backend:
+        address: https://incident-service-638375728722.us-east4.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "204":
+          description: Success
+    post:
+      summary: Create New Incident
+      operationId: createIncident
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              incident_type: {type: string}
+              incident_description: {type: string}
+              exact_location: {type: string}
+              exact_location_description: {type: string}
+              impact_level: {type: integer}
+              priority: {type: string}
+              reported_by: {type: string}
+              source_report_id: {type: string}
+      x-google-backend:
+        address: https://incident-service-638375728722.us-east4.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "201":
+          description: Success
+    get:
+      summary: Get All Incidents
+      operationId: getAllIncidents
+      x-google-backend:
+        address: https://incident-service-638375728722.us-east4.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Success
+
+  /api/v1/incidents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        type: string
+    options:
+      summary: CORS support
+      operationId: corsIncidentId
+      security: [] # ไม่ต้องใช้ API Key สำหรับ OPTIONS
+      x-google-backend:
+        address: https://incident-service-638375728722.us-east4.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "204":
+          description: Success
+    get:
+      summary: Get Incident Details
+      operationId: getIncident
+      x-google-backend:
+        address: https://incident-service-638375728722.us-east4.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Success
+    patch:
+      summary: Update Status
+      operationId: updateStatus
+      x-google-backend:
+        address: https://incident-service-638375728722.us-east4.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Success
