@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -65,21 +66,30 @@ func ProcessIncidentEvent(ctx context.Context, e event.Event) error {
 
 func handleCreate(ctx context.Context, doc *firestoredata.Document) error {
 	fields := doc.Fields
+	
+	// Prepare the data block strictly matching the requested format
 	createdData := map[string]interface{}{
-		"incident_id":          fields["incident_id"].GetStringValue(),
-		"incident_type":        fields["incident_type"].GetStringValue(),
-		"incident_description": fields["incident_description"].GetStringValue(),
-		"exact_location":       fields["exact_location"].GetStringValue(),
-		"impact_level":         fields["impact_level"].GetIntegerValue(),
-		"priority":             fields["priority"].GetStringValue(),
-		"status":               fields["status"].GetStringValue(),
-		"reported_by":          fields["reported_by"].GetStringValue(),
-		"source_report_id":     fields["source_report_id"].GetStringValue(),
-		"created_at":           time.Now().UTC(),
+		"incident_id":                fields["incident_id"].GetStringValue(),
+		"incident_type":              fields["incident_type"].GetStringValue(),
+		"incident_description":       fields["incident_description"].GetStringValue(),
+		"exact_location":             fields["exact_location"].GetStringValue(),
+		"exact_location_description": fields["exact_location_description"].GetStringValue(),
+		"impact_level":               fields["impact_level"].GetIntegerValue(),
+		"priority":                   fields["priority"].GetStringValue(),
+		"status":                     fields["status"].GetStringValue(),
+		"reported_by":                fields["reported_by"].GetStringValue(),
+		"source_report_id":           fields["source_report_id"].GetStringValue(),
+	}
+
+	// Handle created_at timestamp
+	if t := fields["created_at"].GetTimestampValue(); t != nil {
+		createdData["created_at"] = t.AsTime().Format(time.RFC3339)
+	} else {
+		createdData["created_at"] = time.Now().UTC().Format(time.RFC3339)
 	}
 
 	evt := IncidentEvent{
-		EventID:   uuid.New().String(),
+		EventID:   strings.ToUpper(uuid.New().String()),
 		EventType: "INCIDENT_CREATED",
 		SentAt:    time.Now().UTC(),
 		Data:      createdData,
