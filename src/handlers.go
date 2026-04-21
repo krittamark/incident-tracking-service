@@ -24,8 +24,8 @@ func UpdateIncident(client *firestore.Client) fiber.Handler {
 			return c.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
 				Error: ErrorDetail{
 					Code:    "BAD_REQUEST",
-					Message: "Invalid request body",
-					Details: []string{err.Error()},
+					Message: "Invalid request data",
+					Details: []string{"The provided request body is invalid or malformed"},
 					TraceID: traceID,
 				},
 			})
@@ -73,7 +73,7 @@ func UpdateIncident(client *firestore.Client) fiber.Handler {
 				Error: ErrorDetail{
 					Code:    code,
 					Message: message,
-					Details: []string{err.Error()},
+					Details: []string{"An internal error occurred while processing your request"},
 					TraceID: traceID,
 				},
 			})
@@ -95,8 +95,8 @@ func DeleteIncident(client *firestore.Client) fiber.Handler {
 			return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 				Error: ErrorDetail{
 					Code:    "INTERNAL_SERVER_ERROR",
-					Message: "Failed to delete incident",
-					Details: []string{err.Error()},
+					Message: "Failed to process the requested action",
+					Details: []string{"A server-side error occurred. Please try again later."},
 					TraceID: traceID,
 				},
 			})
@@ -120,56 +120,90 @@ func CreateIncident(client *firestore.Client) fiber.Handler {
 			return c.Status(fiber.StatusBadRequest).JSON(ErrorResponse{
 				Error: ErrorDetail{
 					Code:    "BAD_REQUEST",
-					Message: "Invalid request body",
-					Details: []string{err.Error()},
+					Message: "Invalid request data",
+					Details: []string{"The provided request body is invalid or malformed"},
 					TraceID: traceID,
 				},
 			})
 		}
 
-		incidentID := strings.ToUpper(uuid.New().String())
-		now := time.Now().UTC()
+		// --- Idempotency & Creation within Transaction ---
+		var responseData CreateIncidentResponse
+		err := client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+			// 1. Check if Transaction ID already exists (Technical Key)
+			if traceID != "" {
+				query := client.Collection("incidents").Where("transaction_id", "==", traceID).Limit(1)
+				docs, err := tx.Documents(query).GetAll()
+				if err == nil && len(docs) > 0 {
+					var existing Incident
+					if err := docs[0].DataTo(&existing); err == nil {
+						responseData = CreateIncidentResponse{
+							IncidentID: existing.IncidentID,
+							Status:     existing.Status,
+							CreatedAt:  existing.CreatedAt,
+							Message:    "Incident already exists (Transaction match)",
+						}
+						return fmt.Errorf("ALREADY_EXISTS")
+					}
+				}
+			}
 
-		incident := Incident{
-			IncidentID:               incidentID,
-			IncidentType:             req.IncidentType,
-			IncidentDescription:      req.IncidentDescription,
-			ExactLocation:            req.ExactLocation,
-			ExactLocationDescription: req.ExactLocationDescription,
-			ImpactLevel:              req.ImpactLevel,
-			Priority:                 req.Priority,
-			SourceReportID:           req.SourceReportID,
-			Status:                   "REPORTED",
-			ReportedBy:               req.ReportedBy,
-			CreatedAt:                now,
-			UpdatedAt:                now,
-			Timeline: []TimelineEntry{
-				{
-					Time:   now,
-					Event:  "Created",
-					Detail: "Incident verified",
+			// 2. Prepare New Incident
+			incidentID := strings.ToUpper(uuid.New().String())
+			now := time.Now().UTC()
+			incident := Incident{
+				IncidentID:               incidentID,
+				IncidentType:             req.IncidentType,
+				IncidentDescription:      req.IncidentDescription,
+				ExactLocation:            req.ExactLocation,
+				ExactLocationDescription: req.ExactLocationDescription,
+				ImpactLevel:              req.ImpactLevel,
+				Priority:                 req.Priority,
+				SourceReportID:           req.SourceReportID,
+				TransactionID:            traceID,
+				Status:                   "REPORTED",
+				ReportedBy:               req.ReportedBy,
+				CreatedAt:                now,
+				UpdatedAt:                now,
+				Timeline: []TimelineEntry{
+					{
+						Time:   now,
+						Event:  "Created",
+						Detail: "Incident verified",
+					},
 				},
-			},
-		}
+			}
 
-		_, err := client.Collection("incidents").Doc(incidentID).Set(ctx, incident)
+			// 3. Create Document
+			docRef := client.Collection("incidents").Doc(incidentID)
+			if err := tx.Set(docRef, incident); err != nil {
+				return err
+			}
+
+			responseData = CreateIncidentResponse{
+				IncidentID: incidentID,
+				Status:     incident.Status,
+				CreatedAt:  incident.CreatedAt,
+				Message:    "Incident created successfully",
+			}
+			return nil
+		})
+
 		if err != nil {
+			if err.Error() == "ALREADY_EXISTS" {
+				return c.Status(fiber.StatusOK).JSON(responseData)
+			}
 			return c.Status(fiber.StatusInternalServerError).JSON(ErrorResponse{
 				Error: ErrorDetail{
 					Code:    "INTERNAL_SERVER_ERROR",
-					Message: "Failed to save incident to database",
-					Details: []string{err.Error()},
+					Message: "Failed to process incident",
+					Details: []string{"The incident could not be created due to a system error"},
 					TraceID: traceID,
 				},
 			})
 		}
 
-		return c.Status(fiber.StatusCreated).JSON(CreateIncidentResponse{
-			IncidentID: incidentID,
-			Status:     incident.Status,
-			CreatedAt:  incident.CreatedAt,
-			Message:    "Incident created successfully",
-		})
+		return c.Status(fiber.StatusCreated).JSON(responseData)
 	}
 }
 
@@ -229,7 +263,7 @@ func GetIncident(client *firestore.Client) fiber.Handler {
 				Error: ErrorDetail{
 					Code:    "NOT_FOUND",
 					Message: "Incident not found",
-					Details: []string{err.Error()},
+					Details: []string{"The requested incident ID does not exist in our records"},
 					TraceID: traceID,
 				},
 			})
