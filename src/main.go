@@ -16,6 +16,15 @@ func main() {
 	}
 
 	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Set("Access-Control-Allow-Origin", "*")
+		c.Set("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")
+		c.Set("Access-Control-Allow-Headers", "Content-Type, api-key, X-IncidentTNX-Id")
+		if c.Method() == "OPTIONS" {
+			return c.SendStatus(204)
+		}
+		return c.Next()
+	})
 	ctx := context.Background()
 
 	client, err := firestore.NewClient(ctx, PROJECT_ID)
@@ -33,6 +42,13 @@ func main() {
 	app.Patch("/api/v1/incidents/:id", UpdateIncident(client))
 
 	app.Delete("/api/v1/incidents/:id", DeleteIncident(client))
+
+	app.Use(func(c fiber.Ctx) error {
+		return c.Status(404).JSON(fiber.Map{
+			"error":         "Route not found in Cloud Run",
+			"received_path": c.Path(),
+		})
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
