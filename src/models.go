@@ -47,7 +47,7 @@ type CreateIncidentResponse struct {
 }
 
 // ─────────────────────────────────────────────
-// API #2 – GET /incidents/{incident_id}
+// API #2 – GET /incidents/{id}
 // API #4 – GET /incidents/
 // ─────────────────────────────────────────────
 
@@ -68,7 +68,7 @@ type Incident struct {
 }
 
 // ─────────────────────────────────────────────
-// API #3 – PATCH /incidents/{incident_id}
+// API #3 – PATCH /incidents/{id}
 // ─────────────────────────────────────────────
 
 type UpdateIncidentRequest struct {

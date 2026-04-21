@@ -24,19 +24,15 @@ func main() {
 	}
 	defer client.Close()
 
-	app.Get("/incidents", GetIncidents(client))
+	app.Get("/api/v1/incidents", GetIncidents(client))
 
-	app.Get("/incidents/:id", GetIncident(client))
+	app.Get("/api/v1/incidents/:id", GetIncident(client))
 
-	app.Post("/incidents", CreateIncident(client))
+	app.Post("/api/v1/incidents", CreateIncident(client))
 
-	app.Patch("/incidents/:id", UpdateIncident(client))
+	app.Patch("/api/v1/incidents/:id", UpdateIncident(client))
 
-	app.Delete("/incidents/:id", DeleteIncident(client))
-
-	app.Use(func(c fiber.Ctx) error {
-		return nil
-	})
+	app.Delete("/api/v1/incidents/:id", DeleteIncident(client))
 
 	port := os.Getenv("PORT")
 	if port == "" {
