@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Management Console v1.0</title>
+    <link rel="stylesheet" href="https://unpkg.com/98.css">
+    <style>
+        body {
+            background-color: #008080; /* Classic Teal */
+            margin: 20px;
+            font-family: "MS Sans Serif", Arial, sans-serif;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-gap: 20px;
+        }
+
+        .window {
+            margin-bottom: 20px;
+        }
+
+        .window-body {
+            padding: 10px;
+        }
+
+        .field-row {
+            margin-bottom: 8px;
+        }
+
+        .field-row label {
+            width: 120px;
+            display: inline-block;
+        }
+
+        input[type="text"], input[type="number"], select, textarea {
+            width: 180px;
+        }
+
+        textarea {
+            height: 60px;
+        }
+
+        .status-box {
+            background: silver;
+            padding: 10px;
+            border: 1px inset gray;
+            font-family: monospace;
+            height: 100px;
+            overflow-y: scroll;
+            margin-top: 10px;
+            font-size: 11px;
+            background-color: #fff;
+        }
+
+        .incident-list-container {
+            max-height: 500px;
+            overflow-y: auto;
+            background: white;
+            border: 1px inset gray;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #dfdfdf;
+            text-align: left;
+            padding: 4px;
+            border: 1px solid #7f7f7f;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 4px;
+            border-bottom: 1px solid #dfdfdf;
+            font-size: 12px;
+        }
+
+        .severity-badge {
+            padding: 2px 4px;
+            border: 1px solid black;
+            font-weight: bold;
+        }
+
+        .severity-1 { background-color: #00ff00; }
+        .severity-2 { background-color: #ffff00; }
+        .severity-3 { background-color: #ff0000; color: white; }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 60px;
+            margin-bottom: 20px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .desktop-icon img {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 5px;
+        }
+
+        .desktop-icon span {
+            font-size: 11px;
+            text-shadow: 1px 1px black;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar: Controls -->
+    <div class="sidebar">
+        <!-- Configuration Window -->
+        <div class="window" style="width: 320px">
+            <div class="title-bar">
+                <div class="title-bar-text">System Configuration</div>
+            </div>
+            <div class="window-body">
+                <div class="field-row">
+                    <label>API GW URL:</label>
+                    <input id="config-gw-url" type="text" value="https://incident-gateway-859kfcr6.uk.gateway.dev/api/v1">
+                </div>
+                <div class="field-row">
+                    <label>API Key:</label>
+                    <input id="config-api-key" type="text" placeholder="Enter GCP API Key">
+                </div>
+                <div class="field-row">
+                    <label>Webhook URL:</label>
+                    <input id="config-webhook-url" type="text" value="https://us-east4-cs366-incident-service.cloudfunctions.net/report-verify-receiver">
+                </div>
+                <button onclick="saveConfig()">Save Settings</button>
+            </div>
+        </div>
+
+        <!-- Create Incident Window -->
+        <div class="window" style="width: 320px">
+            <div class="title-bar">
+                <div class="title-bar-text">Report New Incident</div>
+            </div>
+            <div class="window-body">
+                <div class="field-row-stacked">
+                    <label>Incident Type:</label>
+                    <select id="f-type">
+                        <option value="fire">Fire</option>
+                        <option value="flood">Flood</option>
+                        <option value="generic">Generic</option>
+                    </select>
+                </div>
+                <div class="field-row-stacked">
+                    <label>Description:</label>
+                    <textarea id="f-desc">User reported incident via UI</textarea>
+                </div>
+                <div class="field-row-stacked">
+                    <label>Location (Lat,Lon):</label>
+                    <input id="f-loc" type="text" value="13.7563,100.5018">
+                </div>
+                <div class="field-row">
+                    <label>Impact (1-3):</label>
+                    <input id="f-impact" type="number" min="1" max="3" value="1">
+                </div>
+                <div class="field-row">
+                    <label>Priority:</label>
+                    <select id="f-priority">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <button onclick="submitIncident()">Submit API GW</button>
+                <div id="api-status" class="status-box">Ready.</div>
+            </div>
+        </div>
+
+        <!-- Mock External System -->
+        <div class="window" style="width: 320px">
+            <div class="title-bar">
+                <div class="title-bar-text">Mock: ReportVerify Service</div>
+            </div>
+            <div class="window-body">
+                <p>Simulate SNS from External AWS</p>
+                <div class="field-row">
+                    <label>External ID:</label>
+                    <input id="m-ext-id" type="text" value="REP-UI-TEST-001">
+                </div>
+                <button onclick="mockExternalSNS()">Send SNS to Webhook</button>
+                <div id="mock-status" class="status-box">Ready.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Section: Data Viewer -->
+    <div class="main-content">
+        <div class="window" style="width: 100%">
+            <div class="title-bar">
+                <div class="title-bar-text">Incident Database Explorer</div>
+            </div>
+            <div class="window-body">
+                <div class="field-row">
+                    <button onclick="refreshIncidents()">Refresh List</button>
+                    <span>Double click a row to view full JSON (Console)</span>
+                </div>
+                <div class="incident-list-container">
+                    <table id="incident-table">
+                        <thead>
+                            <tr>
+                                <th>Incident ID</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Impact</th>
+                                <th>Reported By</th>
+                                <th>Source ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incident-tbody">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Persistence ---
+        function saveConfig() {
+            localStorage.setItem('gw_url', document.getElementById('config-gw-url').value);
+            localStorage.setItem('api_key', document.getElementById('config-api-key').value);
+            localStorage.setItem('webhook_url', document.getElementById('config-webhook-url').value);
+            alert('Settings saved to LocalStorage!');
+        }
+
+        function loadConfig() {
+            if(localStorage.getItem('gw_url')) document.getElementById('config-gw-url').value = localStorage.getItem('gw_url');
+            if(localStorage.getItem('api_key')) document.getElementById('config-api-key').value = localStorage.getItem('api_key');
+            if(localStorage.getItem('webhook_url')) document.getElementById('config-webhook-url').value = localStorage.getItem('webhook_url');
+        }
+
+        window.onload = loadConfig;
+
+        function logStatus(id, msg) {
+            const box = document.getElementById(id);
+            const time = new Date().toLocaleTimeString();
+            box.innerHTML = `[${time}] ${msg}<br/>` + box.innerHTML;
+        }
+
+        // --- API Gateway Calls ---
+        async function submitIncident() {
+            const url = document.getElementById('config-gw-url').value + "/incidents";
+            const apiKey = document.getElementById('config-api-key').value;
+            
+            const payload = {
+                incident_type: document.getElementById('f-type').value,
+                incident_description: document.getElementById('f-desc').value,
+                exact_location: document.getElementById('f-loc').value,
+                impact_level: parseInt(document.getElementById('f-impact').value),
+                priority: document.getElementById('f-priority').value,
+                reported_by: "UI-Classic-Console"
+            };
+
+            logStatus('api-status', "Sending request...");
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': apiKey
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    logStatus('api-status', "SUCCESS: Created " + data.incident_id);
+                    refreshIncidents();
+                } else {
+                    logStatus('api-status', "ERROR: " + (data.error ? data.error.message : res.statusText));
+                }
+            } catch (e) {
+                logStatus('api-status', "FETCH FAILED: " + e.message);
+            }
+        }
+
+        async function refreshIncidents() {
+            const url = document.getElementById('config-gw-url').value + "/incidents";
+            const apiKey = document.getElementById('config-api-key').value;
+            const tbody = document.getElementById('incident-tbody');
+            
+            tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+            try {
+                const res = await fetch(url, {
+                    headers: { 'api-key': apiKey }
+                });
+                const data = await res.json();
+                tbody.innerHTML = '';
+                
+                data.forEach(inc => {
+                    const tr = document.createElement('tr');
+                    tr.ondblclick = () => console.log(inc);
+                    tr.innerHTML = `
+                        <td>${inc.incident_id.substring(0,8)}...</td>
+                        <td>${inc.incident_type}</td>
+                        <td>${inc.status}</td>
+                        <td><span class="severity-badge severity-${inc.impact_level}">${inc.impact_level}</span></td>
+                        <td>${inc.reported_by}</td>
+                        <td>${inc.source_report_id || '-'}</td>
+                        <td>
+                            <button onclick="updateStatus('${inc.incident_id}')">Update</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="7" style="color:red">Failed to load: '+e.message+'</td></tr>';
+            }
+        }
+
+        async function updateStatus(id) {
+            const newStatus = prompt("Enter new status (DISPATCHED, ON-SITE, RESOLVED):", "DISPATCHED");
+            if(!newStatus) return;
+
+            const url = document.getElementById('config-gw-url').value + "/incidents/" + id;
+            const apiKey = document.getElementById('config-api-key').value;
+            
+            try {
+                await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        status: newStatus,
+                        updated_by: "UI-Classic-Console",
+                        detail: "Status manually updated via UI Console"
+                    })
+                });
+                refreshIncidents();
+            } catch (e) {
+                alert("Update failed: " + e.message);
+            }
+        }
+
+        // --- Mock SNS Webhook ---
+        async function mockExternalSNS() {
+            const url = document.getElementById('config-webhook-url').value;
+            const extId = document.getElementById('m-ext-id').value;
+
+            const messageObj = {
+                report_ref_id: extId,
+                suggested_incident_data: {
+                    type: "FIRE",
+                    description: "Mock Fire from Windows UI",
+                    severity_level: 4,
+                    location: { lat: 13.1, lon: 100.1 }
+                },
+                verified_by: "UI_MOCK_ADMIN",
+                verification_notes: "Simulated verification from tester"
+            };
+
+            const snsPayload = {
+                Type: "Notification",
+                Message: JSON.stringify(messageObj)
+            };
+
+            logStatus('mock-status', "Sending Mock SNS...");
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(snsPayload)
+                });
+                if(res.ok) {
+                    logStatus('mock-status', "SUCCESS: SNS Accepted by Webhook");
+                    setTimeout(refreshIncidents, 2000); // Wait for function to finish
+                } else {
+                    logStatus('mock-status', "ERROR: HTTP " + res.status);
+                }
+            } catch (e) {
+                logStatus('mock-status', "FETCH FAILED: " + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
