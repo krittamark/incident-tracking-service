@@ -138,6 +138,7 @@ func CreateIncident(client *firestore.Client) fiber.Handler {
 			ExactLocationDescription: req.ExactLocationDescription,
 			ImpactLevel:              req.ImpactLevel,
 			Priority:                 req.Priority,
+			SourceReportID:           req.SourceReportID,
 			Status:                   "REPORTED",
 			ReportedBy:               req.ReportedBy,
 			CreatedAt:                now,

@@ -37,6 +37,7 @@ type CreateIncidentRequest struct {
 	ImpactLevel              int    `json:"impact_level"`
 	Priority                 string `json:"priority"`
 	ReportedBy               string `json:"reported_by"`
+	SourceReportID           string `json:"source_report_id"`
 }
 
 type CreateIncidentResponse struct {
@@ -62,6 +63,7 @@ type Incident struct {
 	Priority                 string          `json:"priority" firestore:"priority"`
 	Status                   string          `json:"status" firestore:"status"`
 	ReportedBy               string          `json:"reported_by" firestore:"reported_by"`
+	SourceReportID           string          `json:"source_report_id,omitempty" firestore:"source_report_id,omitempty"`
 	CreatedAt                time.Time       `json:"created_at" firestore:"created_at"`
 	UpdatedAt                time.Time       `json:"updated_at" firestore:"updated_at"`
 	Timeline                 []TimelineEntry `json:"timeline" firestore:"timeline"`
@@ -93,6 +95,7 @@ type IncidentCreatedData struct {
 	Priority                 string    `json:"priority"`
 	Status                   string    `json:"status"`
 	ReportedBy               string    `json:"reported_by"`
+	SourceReportID           string    `json:"source_report_id,omitempty"`
 	CreatedAt                time.Time `json:"created_at"`
 }
 
