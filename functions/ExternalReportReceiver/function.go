@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,13 +57,31 @@ type ExternalReportVerifiedEvent struct {
 	VerificationNotes string `json:"verification_notes"`
 }
 
+// AWS EventBridge Message Structure
+type EventBridgeMessage struct {
+	DetailType string `json:"detail-type"`
+	Detail     struct {
+		ReportRefID           string `json:"report_ref_id"`
+		SuggestedIncidentData struct {
+			Type          string `json:"type"`
+			Description   string `json:"description"`
+			SeverityLevel int    `json:"severity_level"`
+			Location      struct {
+				Lat interface{} `json:"lat"` // Use interface{} to handle string or float
+				Lon interface{} `json:"lon"`
+			} `json:"location"`
+		} `json:"suggested_incident_data"`
+		VerifiedBy        string `json:"verified_by"`
+		VerificationNotes string `json:"verification_notes"`
+	} `json:"detail"`
+}
+
 func HandleExternalReport(w http.ResponseWriter, r *http.Request) {
-	// Set CORS headers for all responses
+	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	// Handle Preflight request
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -70,47 +89,89 @@ func HandleExternalReport(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Printf("ERROR: Failed to read body: %v", err)
 		http.Error(w, "Failed to read body", http.StatusBadRequest)
 		return
 	}
 
-	var snsMsg SNSMessage
-	if err := json.Unmarshal(body, &snsMsg); err != nil {
-		http.Error(w, "Invalid SNS format", http.StatusBadRequest)
-		return
-	}
+	log.Printf("RECEIVED PAYLOAD: %s", string(body))
 
-	// 1. Handle SNS Subscription Confirmation
-	if snsMsg.Type == "SubscriptionConfirmation" {
-		log.Printf("Confirming SNS Subscription: %s", snsMsg.SubscribeURL)
-		http.Get(snsMsg.SubscribeURL)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
+	// 1. Try AWS EventBridge Format (Based on user's actual payload)
+	var ebMsg EventBridgeMessage
+	if err := json.Unmarshal(body, &ebMsg); err == nil && ebMsg.DetailType != "" {
+		log.Printf("Processing as EventBridge: %s", ebMsg.DetailType)
+		
+		// Convert Lat/Lon from interface{} to float64
+		lat := parseCoordinate(ebMsg.Detail.SuggestedIncidentData.Location.Lat)
+		lon := parseCoordinate(ebMsg.Detail.SuggestedIncidentData.Location.Lon)
 
-	// 2. Handle Actual Notification
-	if snsMsg.Type == "Notification" {
-		var event ExternalReportVerifiedEvent
-		// AWS SNS wraps the message as a string
-		if err := json.Unmarshal([]byte(snsMsg.Message), &event); err != nil {
-			log.Printf("Failed to unmarshal event message: %v", err)
-			http.Error(w, "Invalid event message format", http.StatusBadRequest)
-			return
+		// Map to our standard event struct
+		event := ExternalReportVerifiedEvent{
+			ReportRefID: ebMsg.Detail.ReportRefID,
+			VerifiedBy:  ebMsg.Detail.VerifiedBy,
+			VerificationNotes: ebMsg.Detail.VerificationNotes,
 		}
+		event.SuggestedIncidentData.Type = ebMsg.Detail.SuggestedIncidentData.Type
+		event.SuggestedIncidentData.Description = ebMsg.Detail.SuggestedIncidentData.Description
+		event.SuggestedIncidentData.SeverityLevel = ebMsg.Detail.SuggestedIncidentData.SeverityLevel
+		event.SuggestedIncidentData.Location.Lat = lat
+		event.SuggestedIncidentData.Location.Lon = lon
 
-		// Create Incident from Verified Report
 		if err := createIncidentFromReport(r.Context(), event); err != nil {
-			log.Printf("Error creating incident: %v", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			log.Printf("ERROR: EB Create incident failed: %v", err)
+			http.Error(w, "Internal Error", 500)
 			return
 		}
-
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "Incident Created Successfully")
+		fmt.Fprint(w, "Success: EventBridge Processed")
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	// 2. Try AWS SNS Format (Fallback)
+	var snsMsg SNSMessage
+	if err := json.Unmarshal(body, &snsMsg); err == nil && snsMsg.Type != "" {
+		if snsMsg.Type == "SubscriptionConfirmation" {
+			log.Printf("Confirming SNS Subscription: %s", snsMsg.SubscribeURL)
+			http.Get(snsMsg.SubscribeURL)
+			return
+		}
+		if snsMsg.Type == "Notification" {
+			var event ExternalReportVerifiedEvent
+			if err := json.Unmarshal([]byte(snsMsg.Message), &event); err == nil {
+				if err := createIncidentFromReport(r.Context(), event); err != nil {
+					log.Printf("ERROR: SNS Create failed: %v", err)
+					return
+				}
+				fmt.Fprint(w, "Success: SNS Processed")
+				return
+			}
+		}
+	}
+
+	// 3. Try Direct JSON (Fallback)
+	var directEvent ExternalReportVerifiedEvent
+	if err := json.Unmarshal(body, &directEvent); err == nil && directEvent.ReportRefID != "" {
+		if err := createIncidentFromReport(r.Context(), directEvent); err != nil {
+			log.Printf("ERROR: Direct Create failed: %v", err)
+			return
+		}
+		fmt.Fprint(w, "Success: Direct Processed")
+		return
+	}
+
+	log.Printf("WARNING: Payload did not match any format")
+	fmt.Fprint(w, "Payload received but not processed")
+}
+
+func parseCoordinate(val interface{}) float64 {
+	switch v := val.(type) {
+	case float64:
+		return v
+	case string:
+		f, _ := strconv.ParseFloat(v, 64)
+		return f
+	default:
+		return 0
+	}
 }
 
 func createIncidentFromReport(ctx context.Context, event ExternalReportVerifiedEvent) error {

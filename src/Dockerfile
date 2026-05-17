@@ -1,4 +1,4 @@
-FROM golang AS build-go
+FROM golang:1.26 AS build-go
 WORKDIR /incident-service
 COPY go.mod .
 COPY go.sum .
