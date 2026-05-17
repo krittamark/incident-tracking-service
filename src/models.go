@@ -125,3 +125,19 @@ type StatusChangedEvent struct {
 	SentAt    time.Time         `json:"sentAt"`
 	Data      StatusChangedData `json:"data"`
 }
+
+// ─────────────────────────────────────────────
+// Async Message #3 – MISSION_STATUS_CHANGED
+// ─────────────────────────────────────────────
+
+type MissionStatusChangedEvent struct {
+	SchemaVersion string `json:"schema_version"`
+	MissionID     string `json:"mission_id"`
+	RequestID     string `json:"requestId"`
+	IncidentID    string `json:"incident_id"`
+	RescueTeamID  string `json:"rescue_team_id"`
+	OldStatus     string `json:"old_status"`
+	NewStatus     string `json:"new_status"`
+	ChangedAt     string `json:"changed_at"`
+	ChangedBy     string `json:"changed_by"`
+}
