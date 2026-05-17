@@ -234,7 +234,7 @@ paths:
       parameters:
         - in: header
           name: X-IncidentTNX-Id
-          required: true
+          required: false
           schema:
             $ref: "#/components/schemas/IncidentTNXID"
       requestBody:
